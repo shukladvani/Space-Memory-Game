@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Memory Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            color: white;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            /* Full space background */
+            background: url('https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') no-repeat center center fixed;
+            background-size: cover;
+            position: relative;
+        }
+
+        /* Dark overlay for better readability */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: -1;
+        }
+
+        h1 {
+            margin-top: 20px;
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            background: linear-gradient(to right, #ff8a00, #e52e71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            padding: 10px;
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            margin: 20px auto;
+            max-width: 90%;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+        }
+
+        #controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #game-board {
+            display: grid;
+            grid-gap: 10px;
+            justify-content: center;
+            margin: 20px auto;
+            perspective: 1000px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .card {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.6s, box-shadow 0.3s;
+            transform-style: preserve-3d;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .card .front, .card .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+        }
+
+        .card .front {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            transform: rotateY(180deg);
+            color: white;
+            font-size: 2rem;
+            border: 3px solid #4facfe;
+        }
+
+        .card .back {
+            background: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60') center/cover;
+            border: 3px solid #16213e;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card.matched {
+            animation: matchedAnimation 0.8s ease-in-out;
+            cursor: default;
+        }
+
+        .card.matched .front {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            border-color: #81C784;
+        }
+
+        @keyframes matchedAnimation {
+            0% { transform: rotateY(180deg) scale(1); }
+            50% { transform: rotateY(180deg) scale(1.2); }
+            100% { transform: rotateY(180deg) scale(1); }
+        }
+
+        #stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            flex-wrap: wrap;
+        }
+
+        #stats p {
+            margin: 0;
+        }
+
+        #level-select, #level-complete {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        #level-select h2, #level-complete h2 {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            color: #ff8a00;
+        }
+
+        button {
+            background: linear-gradient(to right, #ff8a00, #e52e71);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            margin: 10px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            min-width: 120px;
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+            
+            #stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            #controls {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            button {
+                padding: 10px 15px;
+                min-width: 100px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div id="game-container">
+        <h1>Space Memory Game</h1>
+        <div id="controls">
+            <button id="start-btn">Start Game</button>
+            <button id="pause-btn" disabled>Pause</button>
+            <button id="restart-btn" disabled>Restart</button>
+        </div>
+        <div id="stats">
+            <p>Level: <span id="current-level">1</span></p>
+            <p>Time: <span id="time">0</span>s</p>
+            <p>Attempts: <span id="attempts">0</span></p>
+            <p>Score: <span id="score">0</span></p>
+        </div>
+        <div id="game-board"></div>
+    </div>
+
+    <script>
+        // Game configuration
+        const levels = [
+            { rows: 4, cols: 4, pairs: 8, timeLimit: 120 },   // Level 1
+            { rows: 4, cols: 5, pairs: 10, timeLimit: 150 },  // Level 2
+            { rows: 5, cols: 5, pairs: 12, timeLimit: 180 },  // Level 3
+            { rows: 5, cols: 6, pairs: 15, timeLimit: 210 },  // Level 4
+            { rows: 6, cols: 6, pairs: 18, timeLimit: 240 }   // Level 5
+        ];
+
+        const cardOptions = ['🚀', '🛸', '🌕', '🌌', '🪐', '⭐', '☄️', '🌠', '👽', '🛰️', '🌑', '🌒', '🌓', '🌔', '🌖', '🌗', '🌘', '🌙', '🔭', '🪐', '🌎', '🌏', '🌍', '☀️', '🌪️'];
+
+        // Game state
+        let currentLevel = 0;
+        let flippedCards = [];
+        let matchedCards = [];
+        let attempts = 0;
+        let time = 0;
+        let score = 0;
+        let timer;
+        let gameActive = false;
+        let gamePaused = false;
+        let timeWhenPaused = 0;
+
+        // DOM elements
+        const gameBoard = document.getElementById('game-board');
+        const timeDisplay = document.getElementById('time');
+        const attemptsDisplay = document.getElementById('attempts');
+        const scoreDisplay = document.getElementById('score');
+        const levelDisplay = document.getElementById('current-level');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // Create starry background
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            starsContainer.innerHTML = '';
+            
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                star.style.width = `${Math.random() * 3}px`;
+                star.style.height = star.style.width;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.setProperty('--duration', `${2 + Math.random() * 3}s`);
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Shuffle array
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Generate cards for the current level
+        function generateCards(pairs) {
+            const selectedOptions = shuffle([...cardOptions]).slice(0, pairs);
+            const cards = [];
+            
+            selectedOptions.forEach(option => {
+                cards.push(option, option); // Add each option twice to create pairs
+            });
+            
+            return shuffle(cards);
+        }
+
+        // Create the game board
+        function createBoard(rows, cols, pairs) {
+            const cards = generateCards(pairs);
+            gameBoard.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            gameBoard.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+            gameBoard.innerHTML = '';
+            
+            cards.forEach((card, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('card');
+                cardElement.dataset.index = index;
+                
+                const front = document.createElement('div');
+                front.classList.add('front');
+                front.textContent = card;
+                
+                const back = document.createElement('div');
+                back.classList.add('back');
+                
+                cardElement.appendChild(front);
+                cardElement.appendChild(back);
+                cardElement.addEventListener('click', flipCard);
+                gameBoard.appendChild(cardElement);
+            });
+        }
+
+        // Flip a card
+        function flipCard() {
+            if (!gameActive || gamePaused || flippedCards.length >= 2 || 
+                this.classList.contains('flipped') || this.classList.contains('matched')) {
+                return;
+            }
+            
+            playSound('flip');
+            this.classList.add('flipped');
+            flippedCards.push(this);
+            
+            if (flippedCards.length === 2) {
+                attempts++;
+                attemptsDisplay.textContent = attempts;
+                checkForMatch();
+            }
+        }
+
+        // Check if flipped cards match
+        function checkForMatch() {
+            const [card1, card2] = flippedCards;
+            const emoji1 = card1.querySelector('.front').textContent;
+            const emoji2 = card2.querySelector('.front').textContent;
+            
+            if (emoji1 === emoji2) {
+                playSound('match');
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                matchedCards.push(card1, card2);
+                
+                // Add score based on time remaining
+                const timeBonus = Math.max(1, Math.floor((levels[currentLevel].timeLimit - time) / 10));
+                score += 10 * timeBonus;
+                scoreDisplay.textContent = score;
+                
+                if (matchedCards.length === levels[currentLevel].pairs * 2) {
+                    gameActive = false;
+                    clearInterval(timer);
+                    setTimeout(showLevelComplete, 1000);
+                }
+            } else {
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                }, 1000);
+            }
+            
+            flippedCards = [];
+        }
+
+        // Start the timer
+        function startTimer() {
+            clearInterval(timer);
+            time = 0;
+            timeDisplay.textContent = time;
+            
+            timer = setInterval(() => {
+                if (!gamePaused) {
+                    time++;
+                    timeDisplay.textContent = time;
+                    
+                    // Check if time limit exceeded
+                    if (time >= levels[currentLevel].timeLimit) {
+                        clearInterval(timer);
+                        gameActive = false;
+                        alert(`Time's up! You didn't complete level ${currentLevel + 1}. Try again!`);
+                        resetGame();
+                    }
+                }
+            }, 1000);
+        }
+
+        // Play sound effects
+        function playSound(type) {
+            // In a real implementation, you would use actual sound files
+            console.log(`Playing ${type} sound`);
+        }
+
+        // Show level selection screen
+        function showLevelSelection() {
+            const levelSelect = document.createElement('div');
+            levelSelect.id = 'level-select';
+            levelSelect.innerHTML = `
+                <h2>Select Level</h2>
+                <div style="display: flex; flex-wrap: wrap; justify-content: center; max-width: 500px;">
+                    ${levels.map((level, index) => `
+                        <button onclick="startGame(${index})">Level ${index + 1}<br>${level.pairs} pairs</button>
+                    `).join('')}
+                </div>
+            `;
+            document.body.appendChild(levelSelect);
+        }
+
+        // Start a new game
+        function startGame(level = 0) {
+            // Remove any existing popups
+            const existingPopup = document.getElementById('level-select') || document.getElementById('level-complete');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+            
+            currentLevel = level;
+            const { rows, cols, pairs } = levels[level];
+            
+            // Update UI
+            levelDisplay.textContent = level + 1;
+            attempts = 0;
+            attemptsDisplay.textContent = attempts;
+            score = 0;
+            scoreDisplay.textContent = score;
+            
+            // Create the board
+            createBoard(rows, cols, pairs);
+            
+            // Start the game
+            gameActive = true;
+            gamePaused = false;
+            matchedCards = [];
+            flippedCards = [];
+            startTimer();
+            
+            // Update button states
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            restartBtn.disabled = false;
+            pauseBtn.textContent = 'Pause';
+        }
+
+        // Pause/resume the game
+        function togglePause() {
+            gamePaused = !gamePaused;
+            pauseBtn.textContent = gamePaused ? 'Resume' : 'Pause';
+            
+            if (gamePaused) {
+                timeWhenPaused = time;
+            } else {
+                // Resume timer from where it was paused
+                time = timeWhenPaused;
+                timeDisplay.textContent = time;
+            }
+        }
+
+        // Reset the current level
+        function resetGame() {
+            startGame(currentLevel);
+        }
+
+        // Show level complete screen
+        function showLevelComplete() {
+            const popup = document.createElement('div');
+            popup.id = 'level-complete';
+            
+            const isLastLevel = currentLevel === levels.length - 1;
+            const nextLevel = isLastLevel ? 0 : currentLevel + 1;
+            
+            popup.innerHTML = `
+                <h2>Level ${currentLevel + 1} Complete!</h2>
+                <p>Time: ${time}s</p>
+                <p>Attempts: ${attempts}</p>
+                <p>Score: +${10 * Math.max(1, Math.floor((levels[currentLevel].timeLimit - time) / 10))}</p>
+                <div style="margin-top: 20px;">
+                    ${!isLastLevel ? `
+                        <button onclick="startGame(${nextLevel})">Next Level</button>
+                    ` : ''}
+                    <button onclick="showLevelSelection()">Level Selection</button>
+                </div>
+            `;
+            document.body.appendChild(popup);
+            
+            // Update button states
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            restartBtn.disabled = true;
+        }
+
+        // Initialize the game
+        function init() {
+            createStars();
+            showLevelSelection();
+            
+            // Set up button event listeners
+            startBtn.addEventListener('click', () => startGame(0));
+            pauseBtn.addEventListener('click', togglePause);
+            restartBtn.addEventListener('click', resetGame);
+        }
+
+        // Start the game when the page loads
+        window.onload = init;
+    </script>
+</body>
+</html>
