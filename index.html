@@ -14,9 +14,16 @@
             min-height: 100vh;
             overflow-x: hidden;
             /* Full space background */
-            background: url('https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') no-repeat center center fixed;
-            background-size: cover;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #1a1a2e);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
             position: relative;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         /* Dark overlay for better readability */
@@ -109,9 +116,21 @@
         }
 
         .card .back {
-            background: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60') center/cover;
+            background: linear-gradient(45deg, #2a5298, #1e3c72);
             border: 3px solid #16213e;
             box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card .back::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 70%);
         }
 
         .card.flipped {
@@ -250,7 +269,6 @@
     <div id="game-container">
         <h1>Space Memory Game</h1>
         <div id="controls">
-            <button id="start-btn">Start Game</button>
             <button id="pause-btn" disabled>Pause</button>
             <button id="restart-btn" disabled>Restart</button>
         </div>
@@ -293,7 +311,6 @@
         const attemptsDisplay = document.getElementById('attempts');
         const scoreDisplay = document.getElementById('score');
         const levelDisplay = document.getElementById('current-level');
-        const startBtn = document.getElementById('start-btn');
         const pauseBtn = document.getElementById('pause-btn');
         const restartBtn = document.getElementById('restart-btn');
 
@@ -437,11 +454,17 @@
         // Play sound effects
         function playSound(type) {
             // In a real implementation, you would use actual sound files
-            console.log(`Playing ${type} sound`);
+            
         }
 
         // Show level selection screen
         function showLevelSelection() {
+            // Remove any existing popups first
+            const existingPopup = document.getElementById('level-select') || document.getElementById('level-complete');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+
             const levelSelect = document.createElement('div');
             levelSelect.id = 'level-select';
             levelSelect.innerHTML = `
@@ -453,6 +476,18 @@
                 </div>
             `;
             document.body.appendChild(levelSelect);
+        }
+
+        // Show welcome screen
+        function showWelcomeScreen() {
+            const welcomeScreen = document.createElement('div');
+            welcomeScreen.id = 'level-select';
+            welcomeScreen.innerHTML = `
+                <h2>Welcome to Space Memory Game!</h2>
+                <p style="font-size: 1.2rem; margin-bottom: 30px;">Test your memory with this exciting space-themed card matching game!</p>
+                <button onclick="showLevelSelection()">Start Game</button>
+            `;
+            document.body.appendChild(welcomeScreen);
         }
 
         // Start a new game
@@ -484,7 +519,6 @@
             startTimer();
             
             // Update button states
-            startBtn.disabled = true;
             pauseBtn.disabled = false;
             restartBtn.disabled = false;
             pauseBtn.textContent = 'Pause';
@@ -532,7 +566,6 @@
             document.body.appendChild(popup);
             
             // Update button states
-            startBtn.disabled = false;
             pauseBtn.disabled = true;
             restartBtn.disabled = true;
         }
@@ -540,10 +573,9 @@
         // Initialize the game
         function init() {
             createStars();
-            showLevelSelection();
+            showWelcomeScreen();
             
             // Set up button event listeners
-            startBtn.addEventListener('click', () => startGame(0));
             pauseBtn.addEventListener('click', togglePause);
             restartBtn.addEventListener('click', resetGame);
         }
